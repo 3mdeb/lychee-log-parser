@@ -1,0 +1,39 @@
+# Python-specific
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Scrapy-specific
+.scrapy/
+scrapy.cfg
+
+# Logs
+*.log
+log*
+
+# Virtual environments (if you're using virtualenv or venv)
+venv/
+env/
+env.bak/
+env1/
+venv1/
+
+# Output files
+*.csv
+*.json
+*.jl
+*.xml
+
+# IDE-specific files (you can add more if needed)
+.vscode/
+.idea/
+
+# Environment-specific files
+.env
+
+# Miscellaneous
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
