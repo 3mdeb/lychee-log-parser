@@ -142,7 +142,10 @@ class LycheeLogParser():
           are found; otherwise, exits with status code 1.
         """
         broken_files = {}
+        suggestions_for_files = {}
         github_job_summary = []
+        # Complete list of broken urls
+        broken_urls = []
         with open(self.log_path, "r") as log:
             json_log = json.load(log)
 
@@ -151,6 +154,7 @@ class LycheeLogParser():
             exit(0)
 
         for file, error_data in json_log["fail_map"].items():
+            # List of broken urls in a single file
             broken_links = []
             for error in error_data:
                 faulty_link = error["url"]
@@ -168,6 +172,7 @@ class LycheeLogParser():
                     continue
 
                 if status_code and status_code in self._error_codes:
+                    broken_urls.append(faulty_link)
                     broken_links.append(
                         {faulty_link: (status_info, status_code)}
                     )
@@ -181,8 +186,11 @@ class LycheeLogParser():
                     continue
 
                 if not status_details:
+                    broken_urls.append(faulty_link)
                     broken_links.append({faulty_link: (status_info, None)})
                     continue
+
+                broken_urls.append(faulty_link)
                 broken_links.append(
                     {faulty_link: (status_info, status_details)}
                 )
@@ -219,9 +227,52 @@ class LycheeLogParser():
         github_job_summary.append("\n---\n")
         self.log.error("---")
 
+        if not json_log["suggestion_map"]:
+            with open("github_job_summary.md", "w") as summary:
+                summary.writelines(github_job_summary)
+            exit(1)
+
+        for file, broken_links in json_log["suggestion_map"].items():
+            suggestions = []
+            for suggestion in broken_links:
+                if suggestion["original"] not in broken_urls:
+                    continue
+                suggestions.append((suggestion["original"],
+                                   suggestion["suggestion"]))
+            if suggestions:
+                suggestions_for_files.update({file: suggestions})
+
+        if not suggestions_for_files:
+            with open("github_job_summary.md", "w") as summary:
+                summary.writelines(github_job_summary)
+            exit(1)
+
+        github_job_summary.append("\n## :bulb: Fix Suggestions\n\n")
+        suggestion_description = (
+            "Check if broken URL server is expired. "
+            "If it's no longer available, you can fix "
+            "broken links using the suggestions below:"
+        )
+        github_job_summary.append(f"{suggestion_description}\n")
+        github_job_summary.append("\n---\n")
+        self.log.info(suggestion_description)
+        self.log.info("---")
+
+        for file, fix_suggestions in suggestions_for_files.items():
+            github_job_summary.append(f'\n## Suggestions for the "{file}"\n\n')
+            self.log.info(f'Suggestions for the "{file}"')
+            self.log.info("---")
+            for suggestion in fix_suggestions:
+                url_origin, url_suggestion = suggestion
+                github_job_summary.append(f"{url_origin} - {url_suggestion}\n")
+                self.log.info(
+                    f"{BOLD}{RED}{url_origin} - {GREEN}{url_suggestion}{ENDC}"
+                )
+            github_job_summary.append("\n---\n")
+            self.log.info("---")
+
         with open("github_job_summary.md", "w") as summary:
             summary.writelines(github_job_summary)
-
         exit(1)
 
 
