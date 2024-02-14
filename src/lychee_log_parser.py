@@ -181,6 +181,9 @@ class LycheeLogParser():
                 if ("Cached" in status_info):
                     continue
 
+                if ("Too many redirects" in status_info):
+                    continue
+
                 if ("Network error" in status_info and
                         self._args.ignore_nocode_net_err):
                     continue
